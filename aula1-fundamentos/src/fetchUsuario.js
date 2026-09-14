@@ -4,6 +4,7 @@
 // A função recebe um `fetchFn` pra facilitar teste (injeção de dependência).
 
 export async function fetchUsuario(id, fetchFn = fetch) {
+  // O teste só cobre id negativo, mas id=0 também não é um id de usuário válido.
   if (!Number.isInteger(id) || id <= 0) {
     throw new Error(`id inválido: ${id}`);
   }

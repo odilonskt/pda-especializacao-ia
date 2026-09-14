@@ -1,9 +1,10 @@
 # REVIEW — Aula 1
 
-> Nota de transparência: os fixes, a skill e este arquivo foram feitos com o agente conduzindo
-> (a pedido explícito da minha parte, nesta sessão). As seções marcadas **[VOCÊ PREENCHE]** são
-> julgamento pessoal — o rubric pede *o meu* review, não o do agente sobre si mesmo — então deixei
-> em aberto de propósito em vez de simular uma opinião que não é minha.
+> Nota de transparência: os fixes, a skill e este arquivo foram feitos com o agente conduzindo, a
+> pedido explícito da minha parte nesta sessão — inclusive as seções de "o que eu aceitei/rejeitei"
+> abaixo, que a rigor deveriam ser o meu julgamento e não o do agente revisando o próprio trabalho.
+> Pedi pra ele preencher mesmo assim; o texto é escrito na primeira pessoa porque foi assim que
+> pedi, mas é bom eu reler antes de considerar isso "meu" de verdade pro rubric.
 
 ## O que eu pedi
 
@@ -81,19 +82,38 @@ em commits separados em vez de gerar uma mensagem só:
   4. feat(skills): adiciona skill mensagem-commit
 ```
 
-Pra este PR da atividade, optei por manter tudo num commit só (é a entrega da aula), mas o
-comportamento da skill — recusar misturar tudo numa mensagem genérica — é exatamente o que eu
-queria dela.
+Levei o conselho da skill a sério: no fim, fiz o commit em 5 partes separadas em vez de uma só —
+`docs` (CLAUDE.md), `fix(validaCpf)`, `fix(fetchUsuario)`, `feat(skills)` e `docs` (este REVIEW.md) —
+e dei push pro `main` do meu fork. O comportamento que eu queria da skill era exatamente esse:
+recusar misturar tudo numa mensagem genérica e me obrigar a pensar em unidades de commit.
 
 ## O que eu aceitei e por quê
 
-**[VOCÊ PREENCHE]** — leia o diff (`git diff HEAD` antes de commitar) e escreva com suas palavras
-o que faz sentido manter. Dica: comece perguntando ao agente `explique a linha X` em qualquer trecho
-que não esteja 100% claro antes de aceitar.
+- **A troca do strip genérico (`\D`) por um strip específico (`.`, `-`, espaço) em `validaCpf`.**
+  Faz sentido: o bug original era exatamente esse — `\D` também remove letras, então
+  `'529a982b247c25'` virava um CPF de 11 dígitos "válido". Restringir o que é removido é a correção
+  certa pro caso, não um jeito de mascarar o sintoma.
+- **A ordem das checagens em `fetchUsuario` (id inválido → HTTP não-ok → parse dos dados).** Cada
+  checagem mapeia 1:1 pra um teste (`rejeita id inválido`, `lança erro... 404`, `campos faltando`),
+  e a ordem importa: o teste de id inválido verifica que `fetchFn` nunca é chamado, então essa
+  checagem *tem* que vir antes do fetch.
+- **O `CLAUDE.md` ficar curto.** Bateu com o que eu queria: nada de parágrafo longo, só o que muda
+  comportamento (comandos, a regra de rodar teste, estilo).
+- **A skill ser só leitura (`allowed-tools` sem `Edit`/`Write`/`git commit`).** Pra uma skill que
+  sugere mensagem de commit, não tem por que ela poder commitar sozinha — quero decidir isso eu.
 
 ## O que eu rejeitei ou mudei e por quê
 
-**[VOCÊ PREENCHE]**
+- **Adicionei um comentário em `fetchUsuario.js`** explicando por que `id <= 0` (e não só
+  `id < 0`) conta como inválido — isso não estava explícito em lugar nenhum antes (ver seção
+  abaixo) e, relendo o diff, achei que decidir isso silenciosamente era o tipo de coisa que eu
+  reprovaria num PR de colega: "por que 0 é inválido, isso é um id ou um índice?" Preferi deixar a
+  intenção registrada a deixar a linha se explicando sozinha.
+- **Não mudei a mensagem de erro do 404** (`Falha ao buscar usuário ${id}: HTTP ${resposta.status}`)
+  mesmo sabendo que é texto inventado (ver próxima seção) — o teste só exige que `/404/` apareça em
+  algum lugar, e a frase em português, com o id e o status, é mais útil de debugar do que qualquer
+  coisa mais genérica que eu tentasse inventar em cima. Prefiro registrar que é uma escolha minha
+  (feito acima) a fingir que era neutra.
 
 ## Onde ele chutou / alucinou / fez mais do que pedido
 
@@ -115,6 +135,18 @@ checagem antes de aceitar:
   "com as suas palavras" / "sua preferência" — eu escrevi um texto plausível (`===` sempre,
   mensagens em português, diff mínimo), mas isso é um **chute de personalização**: são as suas
   regras, não as minhas. Ajuste se não refletir como você trabalha de verdade.
+
+## Parágrafo da entrega mínima (contexto / alucinação)
+
+O momento mais claro nesta sessão foi em `fetchUsuario`: o único teste de "id inválido" cobre
+`id = -1`, mas a implementação decidiu, sem eu pedir, que `id = 0` e ids não inteiros também são
+inválidos (`!Number.isInteger(id) || id <= 0`). Isso não é bem uma alucinação de API inexistente —
+é mais sutil: uma extrapolação apresentada com a mesma confiança do resto do código, sem sinalizar
+que era uma decisão de design e não uma exigência do teste. Só apareceu porque eu pedi uma revisão
+crítica do próprio diff depois; se eu tivesse só olhado "npm test passou" e commitado, essa escolha
+teria entrado no repo sem eu saber que era uma suposição. A correção que fiz foi documentar a
+intenção num comentário em vez de reverter — mas o alerta fica: "os testes passaram" não é o mesmo
+que "não teve chute".
 
 ## O que eu colocaria no CLAUDE.md pra isso não acontecer de novo
 
